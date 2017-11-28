@@ -185,9 +185,6 @@ int main() {
         map_waypoints_dy.push_back(d_y);
     }
     
-    // Have a reference velocity to target
-    ref_vel = 49.5; //mph
-    
     h.onMessage([&map_waypoints_x, &map_waypoints_y, &map_waypoints_s, &map_waypoints_dx, &map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
         // "42" at the start of the message means there's a websocket message event.
         // The 4 signifies a websocket message
@@ -224,7 +221,18 @@ int main() {
 					// Velocity controller
                     PID vel_control;
                     vel_control.Init(0.005, 0.0, 0.0);
-					double speed_limit = 49.5;
+                    
+                    // Save lane
+                    int n_lane = lane;
+                    int delay = 0;
+                    bool too_close = false;
+                    bool left_free = true;
+                    bool right_free = true;
+                    // Set a safety space
+                    double safety_space = 30;
+                    double left_space = 10000.0;
+                    double right_space = 10000.0;
+					double speed_limit = 49.5; //mph
                     
                     // Sensor Fusion Data, a list of all other cars on the same side of the road.
                     auto sensor_fusion = j[1]["sensor_fusion"];
@@ -236,19 +244,8 @@ int main() {
                         car_s = end_path_s;
                     }
                     
-                    // update lane
-                    int n_lane = lane;
-                    bool too_close = false;
-                    bool left_free = true;
-                    bool right_free = true;
-                    // Set a safety space
-                    double safety_space = 30;
-                    double left_space = 10000.0;
-                    double right_space = 10000.0;
-					int delay = 0;
-                    
                     // Check which lanes are not free depending on the vehichle's lane
-                    if (lane == 0) { 
+                    if (lane == 0) {
                         left_free = false;
                     }
                     if (lane == 2) {
@@ -359,7 +356,7 @@ int main() {
                         delay = 0;
                     }
                     
-                    /*    
+                    /*
                         // if observed car is in my lane:
                         if (d < (2 + 4 * lane + 2) && d > (2 + 4 * lane - 2)) {
                             double vx = sensor_fusion[i][3];
@@ -385,11 +382,11 @@ int main() {
                     // Target velocity control
                     if (too_close) {
                         // Keeping lane
-                        speed_limit = 0.00;
+                        speed_limit = 0.0;
                     } else {
                         speed_limit = 49.5;
                     }
-
+                    
                     double vel_error = ref_vel - speed_limit;
                     vel_control.UpdateError(vel_error);
                     double new_vel = vel_control.TotalError();
@@ -554,6 +551,8 @@ int main() {
     
     h.onConnection([&h](uWS::WebSocket<uWS::SERVER> ws, uWS::HttpRequest req) {
         std::cout << "Connected!!!" << std::endl;
+		// Have a reference velocity to target
+        ref_vel = 0.0; //mph
     });
     
     h.onDisconnection([&h](uWS::WebSocket<uWS::SERVER> ws, int code, char *message, size_t length) {
