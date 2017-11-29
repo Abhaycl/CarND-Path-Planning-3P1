@@ -75,7 +75,7 @@ int NextWaypoint(double x, double y, double theta, const vector<double> &maps_x,
     return closestWaypoint;
 }
 
-// Transform from Cartesian x,y coordinates to Frenet s,d coordinates
+// Transform from Cartesian x, y coordinates to Frenet s, d coordinates
 vector<double> getFrenet(double x, double y, double theta, const vector<double> &maps_x, const vector<double> &maps_y) {
     int next_wp = NextWaypoint(x, y, theta, maps_x, maps_y);
     
@@ -118,7 +118,7 @@ vector<double> getFrenet(double x, double y, double theta, const vector<double> 
     return {frenet_s, frenet_d};
 }
 
-// Transform from Frenet s,d coordinates to Cartesian x,y
+// Transform from Frenet s, d coordinates to Cartesian x, y
 vector<double> getXY(double s, double d, const vector<double> &maps_s, const vector<double> &maps_x, const vector<double> &maps_y) {
     int prev_wp = -1;
     
@@ -143,10 +143,10 @@ vector<double> getXY(double s, double d, const vector<double> &maps_s, const vec
     return {x, y};
 }
 
-// Start in lane 1
+// Start in lane 1 (center lane)
 int lane = 1;
 // Have a reference velocity to target
-double ref_vel;
+double ref_vel = 0.0; //mph
 
 int main() {
     uWS::Hub h;
@@ -217,10 +217,11 @@ int main() {
                     double end_path_s = j[1]["end_path_s"];
                     double end_path_d = j[1]["end_path_d"];
                     
-					// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
-					// Velocity controller
-                    PID vel_control;
-                    vel_control.Init(0.005, 0.0, 0.0);
+                    // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
+                    
+                    // Velocity controller
+                    PID vel_controller;
+                    vel_controller.Init(0.005, 0.0, 0.0);
                     
                     // Save lane
                     int n_lane = lane;
@@ -232,7 +233,7 @@ int main() {
                     double safety_space = 30;
                     double left_space = 10000.0;
                     double right_space = 10000.0;
-					double speed_limit = 49.5; //mph
+                    double speed_limit = 49.5; //mph
                     
                     // Sensor Fusion Data, a list of all other cars on the same side of the road.
                     auto sensor_fusion = j[1]["sensor_fusion"];
@@ -245,10 +246,10 @@ int main() {
                     }
                     
                     // Check which lanes are not free depending on the vehichle's lane
-                    if (lane == 0) {
+                    if (lane == 0) { // Left lane
                         left_free = false;
                     }
-                    if (lane == 2) {
+                    if (lane == 2) { // Right lane
                         right_free = false;
                     }
                     
@@ -281,18 +282,18 @@ int main() {
                                 if (space < left_space) { left_space = space; }
                                 left_free = false;
                             }
-							// If an observed car is on the right side
+                            // If an observed car is on the right side
                             if (obs_lane == (lane + 1)) {
                                 if (space < right_space) { right_space = space; }
                                 right_free = false;
                             }
                         // If car is at the back, within 20m
                         } else if ((car_dist < 0) && (car_dist > -20)) {
-							// If an observed car is on the left side
+                            // If an observed car is on the left side
                             if (obs_lane == (lane - 1)) {
                                 left_free = false;
                             }
-							// If an observed car is on the right side
+                            // If an observed car is on the right side
                             if (obs_lane == (lane + 1)) {
                                 right_free = false;
                             }
@@ -309,7 +310,7 @@ int main() {
                                     //if (space < left_space) { left_space = space; }
                                     left_free = false;
                                 }
-								// If an observed car is on the right side
+                                // If an observed car is on the right side
                                 if (obs_lane == (lane + 1)) {
                                     //if (space < right_space) { right_space = space; }
                                     right_free = false;
@@ -323,7 +324,7 @@ int main() {
                         // cout << "\nleft_side: " << left_is_free << ", " << space_on_left
                         //     << " right_side: " << right_is_free << ", " << space_on_right
                         //     << endl;
-                        if ((lane == 0) && right_free) {
+                        if ((lane == 0) && right_free) { // Left lane and 
                             lane = 1;
                         } else if (lane == 1) {
                             if (left_free && right_free) {
@@ -334,7 +335,7 @@ int main() {
                                 }
                             } else if (left_free) {
                                 lane -= 1;
-                            } else if(right_free) {
+                            } else if (right_free) {
                                 lane += 1;
                             }
                         } else if ((lane == 2) && left_free) {
@@ -382,14 +383,14 @@ int main() {
                     // Target velocity control
                     if (too_close) {
                         // Keeping lane
-                        speed_limit = 0.0;
+                        speed_limit = 0.0; //mph
                     } else {
-                        speed_limit = 49.5;
+                        speed_limit = 49.5; //mph
                     }
                     
                     double vel_error = ref_vel - speed_limit;
-                    vel_control.UpdateError(vel_error);
-                    double new_vel = vel_control.TotalError();
+                    vel_controller.UpdateError(vel_error);
+                    double new_vel = vel_controller.TotalError();
                     ref_vel += new_vel;
                     
                     /*if (too_close) {
@@ -417,7 +418,7 @@ int main() {
                         ptsx.push_back(car_x);
                         ptsy.push_back(prev_car_y);
                         ptsy.push_back(car_y);
-						// Use the previous path is end point as starting reference
+                    // Use the previous path is end point as starting reference
                     } else {
                         // Redefine reference state as previous path end point
                         ref_x = previous_path_x[prev_size - 1];
@@ -434,7 +435,7 @@ int main() {
                         ptsy.push_back(ref_y);
                     }
                     
-                    // In Frenet add evenly 30m spaced points ahead of the starting reference
+                    // In Frenet add evenly 20m spaced points ahead of the starting reference
                     vector<double> next_wp0 = getXY(car_s + 30, (2 + 4 * lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
                     vector<double> next_wp1 = getXY(car_s + 50, (2 + 4 * lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
                     vector<double> next_wp2 = getXY(car_s + 70, (2 + 4 * lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
@@ -551,7 +552,7 @@ int main() {
     
     h.onConnection([&h](uWS::WebSocket<uWS::SERVER> ws, uWS::HttpRequest req) {
         std::cout << "Connected!!!" << std::endl;
-		// Have a reference velocity to target
+        // Have a reference velocity to target
         ref_vel = 0.0; //mph
     });
     
