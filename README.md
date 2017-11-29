@@ -81,11 +81,35 @@ Using the ego car "planning state", sensor fusion predictions an optimal traject
 
 The new path starts with a certain number of points from the previous path, which is received from the simulator at each iteration. From there a spline is generated beginning with the last two points of the previous path that have been kept (or the current position, heading, and velocity if no current path exists), and ending with two points 30 and 60 meters ahead and in the target lane. This produces a smooth x and y trajectory. To prevent excessive acceleration and jerk, the velocity is only allowed increment or decrement by a small amount, and the corresponding next x and y points are calculated along the x and y splines created earlier.
 
----
 ## Detail
 
+A proportional speed control has been used, here the target speed of the ego-vehicle is adjusted according to the state of the vehicle. At the beginning of the project the initial speed of the ego-vehicle is 0 mph which gradually increases. If there is no vehicle in front of the ego-vehicle, the target speed is set to 49.5 mph, which is just below the speed limit. However, if the ego-vehicle is near another vehicle in front of it, it adjusts the target speed to the vehicle ahead and maintains a safety distance of 30m between them.
 
----
+```sh
+......Lines 222
+// Velocity controller
+PID vel_controller;
+vel_controller.Init(0.005, 0.0, 0.0);
+......Lines 224
+
+......Lines 383
+// Target velocity control
+if (too_close) {
+    // Keeping lane
+    speed_limit = 0.0; //mph
+} else {
+    speed_limit = 49.5; //mph
+}
+
+double vel_error = ref_vel - speed_limit;
+vel_controller.UpdateError(vel_error);
+double new_vel = vel_controller.TotalError();
+ref_vel += new_vel;
+......Lines 394
+```
+
+
+
 ## Conclusion
 
 The resulting path planner works well, but not perfectly. It has managed to accumulate incident-free runs of over ten miles multiple times, and once navigating the track incident-free for over twenty miles (for which the image below is evidence). Improving the planner from this point is difficult due to the infrequency of infractions and inability to duplicate the circumstances that led up to an infraction. Overall, I am very satisfied with its performance.
