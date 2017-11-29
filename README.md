@@ -85,7 +85,7 @@ The new path starts with a certain number of points from the previous path, whic
 
 A proportional speed control has been used, here the target speed of the ego-vehicle is adjusted according to the state of the vehicle. At the beginning of the project the initial speed of the ego-vehicle is 0 mph which gradually increases. If there is no vehicle in front of the ego-vehicle, the target speed is set to 49.5 mph, which is just below the speed limit. However, if the ego-vehicle is near another vehicle in front of it, it adjusts the target speed to the vehicle ahead and maintains a safety distance of 30m between them.
 
-```sh
+```cpp
 ......Lines 222
 // Velocity controller
 PID vel_controller;
