@@ -321,9 +321,9 @@ int main() {
                     
                     // If car is too close
                     if (too_close) {
-                        // cout << "\nleft_side: " << left_is_free << ", " << space_on_left
-                        //     << " right_side: " << right_is_free << ", " << space_on_right
-                        //     << endl;
+                        // cout << "\nleft_side: " << left_free << ", " << left_space
+                        //      << " right_side: " << right_free << ", " << right_space
+                        //      << endl;
                         if ((lane == 0) && right_free) { // Left lane and 
                             lane = 1;
                         } else if (lane == 1) {
